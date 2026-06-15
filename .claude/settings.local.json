@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip --version)",
+      "Bash(ls -d /c/Python*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/ProgramData/anaconda3/**)",
+      "Read(//c/ProgramData/miniconda3/**)",
+      "PowerShell(uv run *)"
+    ]
+  }
+}

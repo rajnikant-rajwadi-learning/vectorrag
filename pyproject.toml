@@ -1,0 +1,73 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vectorrag"
+version = "0.1.0"
+description = "Production-ready vector RAG over company 10-Q filings using OpenAI + Chroma."
+requires-python = ">=3.11"
+readme = "README.md"
+
+dependencies = [
+    # --- Core RAG ---
+    "openai>=1.59.6",        # OpenAI SDK (chat + embeddings)
+    "chromadb>=0.5.23",      # Vector database
+    "tiktoken>=0.8.0",       # Token counting / budgeting
+    # --- Config & validation ---
+    "pydantic>=2.10.4",
+    "pydantic-settings>=2.7.1",
+    "python-dotenv>=1.0.1",
+    # --- Document loading (10-Q: PDF + SEC EDGAR HTML) ---
+    "pypdf>=5.1.0",
+    "beautifulsoup4>=4.12.3",
+    "lxml>=5.3.0",
+    # --- Resilience ---
+    "tenacity>=9.0.0",
+    # --- API / AWS Lambda ---
+    "fastapi>=0.115.6",
+    "uvicorn>=0.34.0",
+    "mangum>=0.19.0",        # ASGI -> Lambda adapter
+    "boto3>=1.35.90",        # AWS Secrets Manager / S3
+    # --- Observability ---
+    "structlog>=24.4.0",
+]
+
+[project.scripts]
+vectorrag = "vectorrag.cli:main"
+
+# Dev dependencies (PEP 735 dependency group). Installed by `uv sync` by default,
+# excluded from production builds via `uv sync --no-dev`.
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.4",
+    "mypy>=1.14.0",
+]
+
+[tool.uv]
+# Pin the Python uv provisions for this project; `uv sync` will download it.
+required-version = ">=0.5.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vectorrag"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "api", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]  # allow asserts in tests
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true

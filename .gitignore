@@ -1,0 +1,44 @@
+# Secrets
+.env
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Vector store
+.chroma/
+*.sqlite3
+
+# Data (keep the committed sample, ignore real filings)
+data/raw/*
+!data/raw/SAMPLE_acme_10q.txt
+data/*.pdf
+data/*.html
+
+# Build artifacts
+build/
+dist/
+lambda_package/
+*.zip
+
+# Terraform
+infra/terraform/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,45 @@
+# AWS CodeBuild buildspec — alternative to GitHub Actions for an AWS-native
+# CodePipeline. Wire this into a CodePipeline with a source stage (CodeCommit/
+# GitHub) and this build stage. Requires the CodeBuild role to have ECR push,
+# Secrets Manager, and Lambda/Terraform permissions.
+
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    ECR_REPOSITORY: vectorrag
+    TF_WORKDIR: infra/terraform
+  # OPENAI_API_KEY should be injected from Secrets Manager / SSM, not hardcoded:
+  # secrets-manager:
+  #   TF_VAR_openai_api_key: vectorrag-dev-openai-api-key:OPENAI_API_KEY
+
+phases:
+  install:
+    commands:
+      - curl -LsSf https://astral.sh/uv/0.11.6/install.sh | sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - uv sync --frozen
+      - wget -q https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+      - unzip -o terraform_1.9.8_linux_amd64.zip -d /usr/local/bin
+
+  pre_build:
+    commands:
+      - uv run pytest -q
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REGISTRY=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY
+      - aws ecr describe-repositories --repository-names "$ECR_REPOSITORY" || aws ecr create-repository --repository-name "$ECR_REPOSITORY"
+      - export IMAGE_URI="$REGISTRY/$ECR_REPOSITORY:${CODEBUILD_RESOLVED_SOURCE_VERSION:0:8}"
+
+  build:
+    commands:
+      - docker build -t "$IMAGE_URI" .
+      - docker push "$IMAGE_URI"
+
+  post_build:
+    commands:
+      - cd $TF_WORKDIR
+      - terraform init -input=false
+      - terraform apply -auto-approve -input=false -var="image_uri=$IMAGE_URI" -var="aws_region=$AWS_REGION" -var="environment=production"
+      - terraform output -raw function_url
